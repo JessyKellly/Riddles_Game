@@ -71,6 +71,20 @@ else:
     pontuacao_atual = response_user.data[0]["pontuacao"]
 
 st.write(f"Olá, **{nome_usuario}**! Sua pontuação atual: **{pontuacao_atual}**")
+# criar rodada (uma vez por sessão)
+if "rodada_id" not in st.session_state:
+    usuario_data = supabase.table("usuario") \
+        .select("*") \
+        .eq("nome", nome_usuario) \
+        .execute()
+
+    user_id = usuario_data.data[0]["id"]
+
+    rodada = supabase.table("rodada").insert({
+        "user_id": user_id
+    }).execute()
+
+    st.session_state["rodada_id"] = rodada.data[0]["id"]
 
 # =========================
 # ENIGMA
