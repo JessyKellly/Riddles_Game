@@ -46,6 +46,11 @@ def verificar_resposta(pergunta: str, resposta_correta: str, resposta_usuario: s
     api_key = st.secrets["OPENROUTER_API_KEY"]
     url = "https://openrouter.ai/api/v1/chat/completions"
 
+    response = requests.post(url, headers=headers, json=payload, timeout=15)
+
+    print("STATUS:", response.status_code)
+    print("RESPOSTA:", response.text)
+
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -64,6 +69,7 @@ def verificar_resposta(pergunta: str, resposta_correta: str, resposta_usuario: s
     payload = {
         "model": "openai/gpt-3.5-turbo",
         "messages": [{"role": "user", "content": prompt}],
+        
     }
 
     try:
