@@ -43,11 +43,6 @@ supabase = get_supabase()
 # =============================================================================
 
 def verificar_resposta(pergunta: str, resposta_correta: str, resposta_usuario: str) -> dict:
-    """
-    Envia a pergunta e as respostas para a IA e retorna:
-      - correta (bool)
-      - feedback (str)
-    """
     api_key = st.secrets["OPENROUTER_API_KEY"]
     url     = "https://openrouter.ai/api/v1/chat/completions"
 
@@ -61,10 +56,9 @@ def verificar_resposta(pergunta: str, resposta_correta: str, resposta_usuario: s
     Resposta correta: {resposta_correta}
     Resposta do usuário: {resposta_usuario}
 
-    Avalie se a resposta do usuário está correta considerando sinônimos e contexto.
-    Responda APENAS neste formato:
-    RESULTADO: SIM ou NÃO
-    FEEDBACK: <uma frase curta e divertida explicando o resultado>
+    Responda APENAS com:
+    SIM - se estiver correta
+    NÃO - se estiver incorreta
     """
 
     payload = {
@@ -74,19 +68,15 @@ def verificar_resposta(pergunta: str, resposta_correta: str, resposta_usuario: s
 
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=15)
-        texto = response.json()["choices"][0]["message"]["content"]
+        texto = response.json()["choices"][0]["message"]["content"].strip().upper()
 
-        linhas   = texto.strip().splitlines()
-        correta  = any("SIM" in l.upper() for l in linhas if "RESULTADO" in l.upper())
-        feedback = next(
-            (l.split(":", 1)[1].strip() for l in linhas if "FEEDBACK" in l.upper()),
-            "Sem feedback disponível.",
-        )
-        return {"correta": correta, "feedback": feedback}
+        if "SIM" in texto:
+            return {"correta": True, "feedback": "Boa! Você acertou 🎉"}
+        else:
+            return {"correta": False, "feedback": "Não foi dessa vez 😢"}
 
-    except Exception:
-        return {"correta": False, "feedback": "Não foi possível validar sua resposta. Tente novamente."}
-
+    except Exception as e:
+        return {"correta": False, "feedback": "Erro ao validar resposta com IA"}
 
 # =============================================================================
 # FUNÇÕES DE BANCO DE DADOS
