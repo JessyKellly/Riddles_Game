@@ -114,14 +114,13 @@ def buscar_enigmas() -> list:
 
 
 def salvar_tentativa(rodada_id: int, enigma_id: int, resposta_usuario: str,
-                     correta: bool, pontuacao_obtida: int) -> None:
+                     correta: bool) -> None:
     """Registra uma tentativa na tabela correspondente."""
     supabase.table("tentativa").insert({
         "rodada_id":        rodada_id,
         "enigma_id":        enigma_id,
         "resposta_usuario": resposta_usuario,
         "correta":          correta,
-        "pontuacao":        pontuacao_obtida,
     }).execute()
 
 
@@ -290,8 +289,22 @@ if st.button("✅ Responder"):
             st.success(f"🎉 Correto! {feedback}")
             st.info(f"+{pontos_obtidos} pts adicionados ao seu ranking!")
 
+            salvar_tentativa(rodada_id, enigma["id"], resposta_usuario, True)
+
+            
+            usuario_atualizado = supabase.table("usuario") \
+            .select("pontuacao") \
+            .eq("id", user_id) \
+            .execute()
+
+            pontuacao_atual = usuario_atualizado.data[0]["pontuacao"]
+
+            nova_pontuacao_acumulada = pontuacao_atual + pontos_obtidos
+
+            atualizar_pontuacao_usuario(user_id, nova_pontuacao_acumulada)
+
             # Salva tentativa com pontuação obtida
-            salvar_tentativa(rodada_id, enigma["id"], resposta_usuario, True, pontos_obtidos)
+            salvar_tentativa(rodada_id, enigma["id"], resposta_usuario, True)
 
             # Atualiza pontuação acumulada no banco
             nova_pontuacao_acumulada = pontuacao_acumulada + pontos_obtidos
@@ -319,7 +332,7 @@ if st.button("✅ Responder"):
             st.warning(f"-{PENALIDADE_ERRO} pts de penalidade. Pontuação atual: {st.session_state['pontuacao_rodada']} pts")
 
             # Salva tentativa sem pontuação
-            salvar_tentativa(rodada_id, enigma["id"], resposta_usuario, False, 0)
+            salvar_tentativa(rodada_id, enigma["id"], resposta_usuario, False)
 
             if jogador_derrotado(st.session_state["pontuacao_rodada"]):
                 st.session_state["game_over"] = True
