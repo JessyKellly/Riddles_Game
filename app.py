@@ -106,6 +106,17 @@ if st.button("Responder"):
         enigma["resposta"],
         resposta_usuario
     )
+    rodada_id = st.session_state["rodada_id"]
+
+    correta = "SIM" in resultado_ia.upper()
+
+    # salvar tentativa
+    supabase.table("tentativa").insert({
+        "rodada_id": rodada_id,
+        "enigma_id": enigma["id"],
+        "resposta_usuario": resposta_usuario,
+        "correta": correta
+    }).execute()
 
     if "SIM" in resultado_ia.upper():
         st.success("Acertou! 🎉")
