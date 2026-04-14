@@ -42,18 +42,13 @@ supabase = get_supabase()
 # CAMADA DE IA — OpenRouter (seção 5 da documentação)
 # =============================================================================
 
-def verificar_resposta(pergunta, resposta_correta, resposta_usuario):
+def verificar_resposta(pergunta: str, resposta_correta: str, resposta_usuario: str) -> dict:
     api_key = st.secrets["OPENROUTER_API_KEY"]
-
-    # fallback simples (comparação direta)
-    if resposta_usuario.strip().lower() == resposta_correta.strip().lower():
-        return {"correta": True, "feedback": "Resposta exata! 🔥"}
-
     url = "https://openrouter.ai/api/v1/chat/completions"
 
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
     prompt = f"""
@@ -61,34 +56,33 @@ def verificar_resposta(pergunta, resposta_correta, resposta_usuario):
     Resposta correta: {resposta_correta}
     Resposta do usuário: {resposta_usuario}
 
-    Responda apenas com SIM ou NÃO.
+    Responda APENAS com:
+    SIM - se estiver correta
+    NÃO - se estiver errada
     """
 
-    data = {
+    payload = {
         "model": "openai/gpt-3.5-turbo",
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
+        "messages": [{"role": "user", "content": prompt}],
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=10)
-        resultado = response.json()
+        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        texto = response.json()["choices"][0]["message"]["content"].strip().upper()
 
-        if "choices" not in resultado:
-            return {"correta": False, "feedback": "IA indisponível"}
-
-        texto = resultado["choices"][0]["message"]["content"]
-
-        correta = "SIM" in texto.upper()
+        correta = "SIM" in texto
 
         return {
             "correta": correta,
-            "feedback": "Resposta válida 👍" if correta else "Não foi dessa vez 😢"
+            "feedback": "Boa! Você acertou 😎" if correta else "Quase! Tente pensar diferente 🤔"
         }
 
-    except:
-        return {"correta": False, "feedback": "Erro na IA"}
+    except Exception as e:
+        print("ERRO IA:", e)
+        return {
+            "correta": False,
+            "feedback": "Erro ao validar resposta."
+        }
 
 # =============================================================================
 # FUNÇÕES DE BANCO DE DADOS
