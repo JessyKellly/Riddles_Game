@@ -44,7 +44,7 @@ supabase = get_supabase()
 
 def verificar_resposta(pergunta: str, resposta_correta: str, resposta_usuario: str) -> dict:
     api_key = st.secrets["OPENROUTER_API_KEY"]
-    url     = "https://openrouter.ai/api/v1/chat/completions"
+    url = "https://openrouter.ai/api/v1/chat/completions"
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -56,9 +56,10 @@ def verificar_resposta(pergunta: str, resposta_correta: str, resposta_usuario: s
     Resposta correta: {resposta_correta}
     Resposta do usuário: {resposta_usuario}
 
-    Responda APENAS com:
+    A resposta do usuário está correta?
+    Responda apenas com:
     SIM - se estiver correta
-    NÃO - se estiver incorreta
+    NÃO - se estiver errada
     """
 
     payload = {
@@ -67,16 +68,23 @@ def verificar_resposta(pergunta: str, resposta_correta: str, resposta_usuario: s
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
-        texto = response.json()["choices"][0]["message"]["content"].strip().upper()
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        data = response.json()
 
-        if "SIM" in texto:
-            return {"correta": True, "feedback": "Boa! Você acertou 🎉"}
-        else:
-            return {"correta": False, "feedback": "Não foi dessa vez 😢"}
+        if "choices" not in data:
+            return {"correta": False, "feedback": "Erro na IA."}
+
+        texto = data["choices"][0]["message"]["content"]
+
+        correta = "SIM" in texto.upper()
+
+        return {
+            "correta": correta,
+            "feedback": "Boa!" if correta else "Tente outra resposta"
+        }
 
     except Exception as e:
-        return {"correta": False, "feedback": "Erro ao validar resposta com IA"}
+        return {"correta": False, "feedback": "Erro ao conectar com IA"}
 
 # =============================================================================
 # FUNÇÕES DE BANCO DE DADOS
