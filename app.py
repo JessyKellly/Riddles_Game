@@ -5,6 +5,14 @@ import requests
 # =========================
 # FUNÇÃO IA (OpenRouter)
 # =========================
+def calcular_pontos(nivel):
+    if nivel == "facil":
+        return 5000
+    elif nivel == "medio":
+        return 10000
+    elif nivel == "dificil":
+        return 15000
+    return 0
 def verificar_resposta(pergunta, resposta_correta, resposta_usuario):
     api_key = st.secrets["OPENROUTER_API_KEY"]
     url = "https://openrouter.ai/api/v1/chat/completions"
@@ -122,7 +130,8 @@ if st.button("Responder"):
         st.success("Acertou! 🎉")
         
         # SOMA 1000 pontos à pontuação que buscamos no banco
-        nova_pontuacao = pontuacao_atual + 1000
+        pontos = calcular_pontos(enigma["nivel"])
+        nova_pontuacao = pontuacao_atual + pontos
 
         # Atualiza o banco usando o ID (é muito mais seguro que o nome)
         supabase.table("usuario").update({"pontuacao": nova_pontuacao}).eq("id", user_id).execute()
