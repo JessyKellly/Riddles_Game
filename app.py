@@ -42,53 +42,48 @@ supabase = get_supabase()
 # CAMADA DE IA — OpenRouter (seção 5 da documentação)
 # =============================================================================
 
-def verificar_resposta(pergunta: str, resposta_correta: str, resposta_usuario: str) -> dict:
-    api_key = st.secrets["OPENROUTER_API_KEY"]
-    url = "https://openrouter.ai/api/v1/chat/completions"
+def verificar_resposta(pergunta, resposta_correta, resposta_usuario):
+    
+    resposta_usuario = resposta_usuario.strip().lower()
+    resposta_correta = resposta_correta.strip().lower()
 
-    response = requests.post(url, headers=headers, json=payload, timeout=15)
+    # ✔️ validação simples primeiro (mais confiável)
+    if resposta_usuario == resposta_correta:
+        return {"correta": True, "feedback": "Mandou bem! 🎯"}
 
-    print("STATUS:", response.status_code)
-    print("RESPOSTA:", response.text)
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
-    prompt = f"""
-    Pergunta: {pergunta}
-    Resposta correta: {resposta_correta}
-    Resposta do usuário: {resposta_usuario}
-
-    Responda APENAS com:
-    SIM - se estiver correta
-    NÃO - se estiver errada
-    """
-
-    payload = {
-        "model": "openai/gpt-3.5-turbo",
-        "messages": [{"role": "user", "content": prompt}],
-        
-    }
-
+    # 🔥 fallback IA (se quiser manter)
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
-        texto = response.json()["choices"][0]["message"]["content"].strip().upper()
+        api_key = st.secrets["OPENROUTER_API_KEY"]
 
-        correta = "SIM" in texto
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "openai/gpt-3.5-turbo",
+                "messages": [
+                    {"role": "user", "content": f"A resposta '{resposta_usuario}' pode ser considerada correta para '{resposta_correta}'? Responda SIM ou NÃO"}
+                ],
+            },
+            timeout=10
+        )
+
+        data = response.json()
+
+        if "choices" not in data:
+            return {"correta": False, "feedback": "Erro na validação."}
+
+        texto = data["choices"][0]["message"]["content"]
 
         return {
-            "correta": correta,
-            "feedback": "Boa! Você acertou 😎" if correta else "Quase! Tente pensar diferente 🤔"
+            "correta": "SIM" in texto.upper(),
+            "feedback": texto
         }
 
-    except Exception as e:
-        print("ERRO IA:", e)
-        return {
-            "correta": False,
-            "feedback": "Erro ao validar resposta."
-        }
+    except:
+        return {"correta": False, "feedback": "Erro na validação."}
 
 # =============================================================================
 # FUNÇÕES DE BANCO DE DADOS
